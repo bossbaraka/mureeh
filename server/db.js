@@ -111,14 +111,12 @@ async function initSchema() {
 }
 
 async function seedAdmin(username, plainPassword) {
+  const hash = bcrypt.hashSync(plainPassword, 10);
   const existing = await query("SELECT id, role FROM users WHERE username = $1", [username]);
   if (existing.rows.length > 0) {
-    if (existing.rows[0].role !== "admin") {
-      await query("UPDATE users SET role='admin' WHERE id = $1", [existing.rows[0].id]);
-    }
+    await query("UPDATE users SET role='admin', password_hash=$1 WHERE id = $2", [hash, existing.rows[0].id]);
     return;
   }
-  const hash = bcrypt.hashSync(plainPassword, 10);
   await query(
     "INSERT INTO users (username, password_hash, role, display_name) VALUES ($1, $2, 'admin', $3)",
     [username, hash, "Mureeh Admin"]
