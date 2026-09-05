@@ -448,7 +448,7 @@
            3. keyboard user tabs in       -> focusin plays instantly, so a
               focused control is never invisible.
       ------------------------------------------------------------------- */
-      if (inViewport(el)) {
+      if (inViewport(el) || (window.location.hash && window.location.hash.includes("team"))) {
         play();
       } else if (typeof IntersectionObserver === "function") {
         const io = new IntersectionObserver(
@@ -463,10 +463,8 @@
           { threshold: 0 }
         );
         io.observe(el);
-        // last-resort net: never leave the board empty for long
-        window.setTimeout(() => {
-          if (inViewport(el)) play();
-        }, 1500);
+        window.addEventListener("scroll", () => { if (inViewport(el)) play(); }, { passive: true, once: true });
+        window.setTimeout(() => { if (inViewport(el)) play(); }, 400);
       } else {
         play();
       }

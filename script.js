@@ -58,7 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }, { threshold: 0.12 });
-  revealEls.forEach(el => io.observe(el));
+  revealEls.forEach(el => {
+    io.observe(el);
+    const r = el.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight)) {
+      el.classList.add("in");
+    }
+  });
 
   /* ---------- ==================== BRIEFING FLOW ==================== ---------- */
   const steps = Array.from(document.querySelectorAll(".brief-step"));
