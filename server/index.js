@@ -34,8 +34,8 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
 const JWT_EXPIRES_IN = "8h";
 
-const ADMIN_USERNAME = process.env.MUREEH_ADMIN_USER || "mureeh_admin";
-const ADMIN_PASSWORD = process.env.MUREEH_ADMIN_PASS || "yYhR4Vcxp4ICEb";
+const ADMIN_USERNAME = process.env.MUREEH_ADMIN_USER || "abodybaraka059@gmail.com";
+const ADMIN_PASSWORD = process.env.MUREEH_ADMIN_PASS || "16112004Abody@$@";
 
 async function boot() {
   await initSchema();

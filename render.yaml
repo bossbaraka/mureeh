@@ -52,7 +52,7 @@ services:
 
       # ---- Seed admin account -------------------------------------------------
       - key: MUREEH_ADMIN_USER
-        value: mureeh_admin
+        value: abodybaraka059@gmail.com
       - key: MUREEH_ADMIN_PASS
         sync: false
 
