@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Environment secrets — never commit real credentials
+.env
+.env.local
+server/.env
+server/.env.local
+
+# Local-disk image fallback (dev only — production uses Supabase Storage)
+uploads/*
+!uploads/.gitkeep
+
+# OS/editor junk
+.DS_Store
+*.log
+npm-debug.log*
+
+# Legacy SQLite artifacts (no longer used — kept ignored in case old files linger locally)
+server/*.db
+server/*.db-shm
+server/*.db-wal

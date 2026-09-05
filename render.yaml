@@ -1,0 +1,67 @@
+# ============================================================================
+# Render Blueprint — deploys the Mureeh server as a single Node web service.
+#
+# HOW TO USE:
+#   1. Push this repository to GitHub/GitLab.
+#   2. In the Render dashboard: New -> Blueprint -> connect this repo.
+#      Render will read this file automatically.
+#   3. Fill in the required secret values (marked "sync: false" below) when
+#      prompted during blueprint setup — Render will NOT auto-generate these,
+#      you must paste them in from your Supabase project.
+#   4. Deploy. Render builds the server/ folder and starts it with `npm start`.
+#
+# See server/README.md for the full Supabase setup walkthrough (database +
+# storage bucket) that these environment variables refer to.
+# ============================================================================
+services:
+  - type: web
+    name: mureeh-website
+    runtime: node
+    plan: free
+    rootDir: server
+    # `npm ci` (not `npm install`) installs exactly what package-lock.json
+    # pins, so a rebuild can't silently pull in new dependency versions.
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      # Pinned explicitly on purpose. Two reasons:
+      #   1. Node 20 reached end-of-life in April 2026 — do not pin 20.x.
+      #   2. Render's default depends on WHEN the service was created (24.14.1
+      #      for services made after 2026-04-21), so an unpinned deploy can
+      #      differ from what you tested.
+      # 22.x is an active LTS and ships a native globalThis.WebSocket, which
+      # supabase-js needs on boot; that removes the crash class entirely.
+      # Bump to 24.14.1 (Render's current default) whenever you next verify.
+      - key: NODE_VERSION
+        value: 22.22.0
+
+      # ---- Database: Supabase Postgres connection string -------------------
+      # Supabase Dashboard -> Project Settings -> Database -> Connection
+      # string -> URI. Use the "Session pooler" connection string for best
+      # compatibility with Render (works with both IPv4 and IPv6 egress).
+      - key: DATABASE_URL
+        sync: false
+
+      # ---- Auth secret -------------------------------------------------------
+      # Generate once with:
+      #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - key: JWT_SECRET
+        generateValue: true
+
+      # ---- Seed admin account -------------------------------------------------
+      - key: MUREEH_ADMIN_USER
+        value: mureeh_admin
+      - key: MUREEH_ADMIN_PASS
+        sync: false
+
+      # ---- Supabase Storage (project images) ----------------------------------
+      # Required in production — Render's disk is ephemeral, so without these
+      # uploaded images would be lost on every deploy/restart.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: project-images

@@ -1,0 +1,830 @@
+/* ==========================================================================
+   MUREEH · TEAM TACTICAL SYSTEM — styles
+   --------------------------------------------------------------------------
+   Fully namespaced under `.tt` / `#teamTactics` and scoped to the section
+   wrapper. Nothing here overrides a global rule in styles.css, and every
+   colour resolves to an existing brand token so the board cannot drift
+   away from the rest of the site.
+
+   Visual intent: a professional sports-analytics surface, not a pitch.
+   Restrained lines, strong type hierarchy, one accent used sparingly.
+   ========================================================================== */
+
+/* ---------- shell ------------------------------------------------------- */
+.tt {
+  margin-top: 54px;
+  position: relative;
+}
+
+.tt__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.tt__error {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--graphite-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+}
+
+/* ---------- formation selector ------------------------------------------ */
+.tt-formations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, max-content));
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+  width: max-content;
+  max-width: 100%;
+}
+
+.tt-formation {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--graphite);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: color 0.28s ease, background 0.28s ease, border-color 0.28s ease;
+  white-space: nowrap;
+}
+
+.tt-formation:hover {
+  color: var(--ink);
+  background: rgba(14, 17, 22, 0.04);
+}
+
+.tt-formation.is-active {
+  color: var(--ivory);
+  background: var(--cobalt-deep);
+  border-color: var(--cobalt-deep);
+}
+
+.tt-formation:focus-visible {
+  outline: 2px solid var(--copper);
+  outline-offset: 2px;
+}
+
+.tt-formations__caption {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 2px 10px 4px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--graphite-2);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+/* ---------- board ------------------------------------------------------- */
+.tt-board {
+  position: relative;
+  width: 100%;
+  /* One band must be tall enough for a card plus its clearance above and
+     below the avatar anchor (see formationEngine.js: CLEAR_TOP/CLEAR_BOTTOM).
+     The surface grows with the row count instead of letting cards overlap or
+     hang past the edge. */
+  --tt-band: 180px;
+  height: max(clamp(520px, 60vh, 620px), calc(var(--tt-capacity, 4) * var(--tt-band)));
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, #fbf9f5 0%, #f4f0e8 100%);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* hairline corner ticks — the only "tactical" ornament on the surface */
+.tt-board::before,
+.tt-board::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(14, 17, 22, 0.22);
+  pointer-events: none;
+  z-index: 3;
+}
+.tt-board::before {
+  top: 14px;
+  left: 14px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.tt-board::after {
+  bottom: 14px;
+  right: 14px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.tt-board__gridlayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease 0.3s;
+}
+.tt-board.is-entering .tt-board__gridlayer,
+.tt-board.is-entered .tt-board__gridlayer {
+  opacity: 1;
+}
+
+.tt-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tt-grid__lines line {
+  stroke: rgba(14, 17, 22, 0.055);
+  stroke-width: 1;
+}
+
+.tt-board__halo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(closest-side, rgba(21, 101, 192, 0.10) 0%, rgba(21, 101, 192, 0.03) 52%, rgba(21, 101, 192, 0) 78%);
+  transition: transform 0.1s linear, opacity 0.7s ease 0.45s;
+  will-change: transform;
+}
+.tt-board.is-entered .tt-board__halo {
+  opacity: 1;
+}
+
+.tt-board__nodes {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* pointer interactivity is unlocked at the end of the entrance timeline */
+.tt-board:not(.is-live) .tt-board__nodes {
+  pointer-events: none;
+}
+.tt-board:not(.is-live) .tt-node {
+  cursor: default;
+}
+
+/* ---------- connection lines -------------------------------------------- */
+.tt-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tt-link {
+  transition: stroke-opacity 0.32s ease, stroke-width 0.32s ease, opacity 0.32s ease;
+}
+
+.tt-link--hierarchy {
+  stroke: var(--cobalt);
+  stroke-opacity: 0.42;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.tt-link--row {
+  stroke: var(--graphite);
+  stroke-opacity: 0.34;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.tt-link--cross {
+  stroke: var(--copper);
+  stroke-opacity: 0.75;
+  stroke-width: 1.1;
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+/* cross-squad collaboration is revealed on focus — an interaction payoff
+   rather than permanent clutter */
+.tt-link--cross.is-active {
+  opacity: 1;
+}
+
+.tt-link.is-active.tt-link--hierarchy {
+  stroke-opacity: 0.95;
+  stroke-width: 2;
+}
+.tt-link.is-active.tt-link--row {
+  stroke-opacity: 0.75;
+  stroke-width: 1.6;
+}
+
+/* once drawn, the command links carry a slow signal flow */
+.tt-link--hierarchy.is-drawn {
+  stroke-dasharray: 3.5 9;
+  animation: tt-flow 4.6s linear infinite;
+}
+@keyframes tt-flow {
+  to { stroke-dashoffset: -12.5; }
+}
+
+/* ---------- player node ------------------------------------------------- */
+.tt-node {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  will-change: transform;
+  cursor: pointer;
+  /* position-only element: JS owns this transform */
+}
+
+.tt-node__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 152px;
+  padding: 4px 6px 2px;
+  opacity: 0;
+  transition:
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.34s ease,
+    filter 0.34s ease;
+}
+
+/* Entrance. `backwards` rather than `both` on purpose: the animation must
+   hold the hidden state during its per-node delay, but must RELEASE the
+   element once it finishes. With `both`, the keyframe's final opacity and
+   transform would stay applied for the life of the page and silently beat
+   every hover rule below (same property, higher cascade origin). */
+.tt-board.is-entering .tt-node__inner {
+  opacity: 1;
+  animation: tt-node-in 0.76s cubic-bezier(0.16, 1, 0.3, 1) var(--tt-delay, 0ms) backwards;
+}
+.tt-board.is-entered .tt-node__inner {
+  opacity: 1;
+}
+@keyframes tt-node-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tt-node__avatar {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid rgba(14, 17, 22, 0.14);
+  box-shadow: 0 2px 10px rgba(14, 17, 22, 0.07);
+  transition: box-shadow 0.38s ease, border-color 0.38s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tt-node__mono {
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--graphite);
+  transition: color 0.38s ease;
+}
+
+.tt-node__photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tt-node__dot {
+  position: absolute;
+  inset-inline-end: -2px;
+  bottom: -2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(14, 17, 22, 0.12);
+  display: grid;
+  place-items: center;
+}
+
+.tt-node__glyph {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* status glyph colour is decorative only — the word next to it carries
+   the meaning, so the state survives greyscale and colour-blindness */
+.tt-node[data-status="available"] .tt-node__glyph { color: #2e7d32; }
+.tt-node[data-status="focused"]   .tt-node__glyph { color: var(--cobalt); }
+.tt-node[data-status="review"]    .tt-node__glyph { color: var(--copper); }
+.tt-node[data-status="off"]       .tt-node__glyph { color: var(--graphite-2); }
+
+.tt-node[data-accent="cobalt"]   .tt-node__avatar { border-color: rgba(21, 101, 192, 0.34); }
+.tt-node[data-accent="cyan"]     .tt-node__avatar { border-color: rgba(0, 188, 212, 0.42); }
+.tt-node[data-accent="copper"]   .tt-node__avatar { border-color: rgba(181, 101, 43, 0.4); }
+.tt-node[data-accent="graphite"] .tt-node__avatar { border-color: rgba(85, 87, 92, 0.34); }
+
+/* Stretch to the card width on purpose. `.tt-node__inner` is a shrink to
+   fit flex column, so without an explicit 100% the meta block collapses to
+   the width of the SHORTEST line (usually the name), and every absolutely
+   positioned label below then ellipsises against ~35px instead of the card.
+   This was the root cause of truncated roles on every viewport. */
+.tt-node__meta {
+  align-self: stretch;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.tt-node__badge {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 2.4px;
+  color: var(--copper);
+  padding-bottom: 2px;
+}
+
+.tt-node__name {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+/* role and peek share one line slot so hover never shifts the layout */
+.tt-node__line {
+  position: relative;
+  height: 12px;
+  width: 100%;
+}
+
+.tt-node__role,
+.tt-node__peek {
+  position: absolute;
+  inset: 0;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.25px;
+  line-height: 12px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.28s ease, transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tt-node__peek {
+  opacity: 0;
+  transform: translateY(4px);
+  color: var(--cobalt-deep);
+}
+
+.tt-node__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--graphite);
+}
+
+.tt-node__state-glyph { font-size: 8px; line-height: 1; }
+.tt-node[data-status="available"] .tt-node__state-glyph { color: #2e7d32; }
+.tt-node[data-status="focused"]   .tt-node__state-glyph { color: var(--cobalt); }
+.tt-node[data-status="review"]    .tt-node__state-glyph { color: var(--copper); }
+.tt-node[data-status="off"]       .tt-node__state-glyph { color: var(--graphite-2); }
+
+/* ---------- hover / focus ----------------------------------------------- */
+.tt-board[data-focus-id] .tt-node:not(.is-focused) .tt-node__inner {
+  opacity: 0.34;
+  filter: saturate(0.35);
+}
+
+.tt-node.is-focused .tt-node__inner {
+  transform: translateY(-3px) scale(1.055);
+}
+
+.tt-node.is-focused .tt-node__avatar {
+  border-color: var(--cobalt);
+  box-shadow:
+    0 0 0 5px rgba(21, 101, 192, 0.09),
+    0 12px 26px rgba(14, 17, 22, 0.16);
+}
+
+.tt-node.is-focused .tt-node__mono { color: var(--cobalt-deep); }
+.tt-node.is-focused .tt-node__role { opacity: 0; transform: translateY(-4px); }
+.tt-node.is-focused .tt-node__peek { opacity: 1; transform: translateY(0); }
+
+.tt-node:focus-visible {
+  outline: none;
+}
+.tt-node:focus-visible .tt-node__inner {
+  transform: translateY(-3px) scale(1.055);
+}
+.tt-node:focus-visible .tt-node__avatar {
+  box-shadow:
+    0 0 0 2px var(--ivory),
+    0 0 0 4px var(--copper);
+}
+
+/* the focused class is mirrored onto the node by the board so the CSS
+   above can target it without a per-node hover listener doing any work */
+
+/* ---------- captain ----------------------------------------------------- */
+.tt-node--captain .tt-node__inner {
+  /* the captain carries a longer compound role string — give it room */
+  width: 196px;
+}
+
+.tt-node--captain .tt-node__avatar {
+  width: 68px;
+  height: 68px;
+  background: linear-gradient(150deg, var(--cobalt-deep) 0%, #0a3c86 100%);
+  border-color: var(--cobalt-deep);
+  box-shadow:
+    0 0 0 6px rgba(21, 101, 192, 0.08),
+    0 10px 26px rgba(13, 71, 161, 0.28);
+}
+
+.tt-node--captain .tt-node__mono {
+  color: var(--ivory);
+  font-size: 16px;
+}
+
+.tt-node--captain .tt-node__dot {
+  width: 19px;
+  height: 19px;
+}
+
+.tt-node--captain .tt-node__name {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.tt-node--captain.is-focused .tt-node__avatar {
+  border-color: var(--copper);
+  box-shadow:
+    0 0 0 6px rgba(181, 101, 43, 0.16),
+    0 14px 30px rgba(13, 71, 161, 0.3);
+}
+
+/* ---------- detail panel ------------------------------------------------ */
+body.tt-scroll-lock { overflow: hidden; }
+
+.tt-panel {
+  position: fixed;
+  inset: 0;
+  /* above the site's ribbon (1001), header (1000), orb (1200) and chat (1300) */
+  z-index: 2000;
+  pointer-events: none;
+}
+.tt-panel[hidden] { display: none; }
+.tt-panel.is-open { pointer-events: auto; }
+
+.tt-panel__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 17, 22, 0.42);
+  opacity: 0;
+  transition: opacity 0.36s ease;
+}
+.tt-panel.is-open .tt-panel__scrim { opacity: 1; }
+
+.tt-panel__surface {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(430px, 92vw);
+  background: var(--ivory);
+  border-inline-start: 1px solid var(--line-strong);
+  box-shadow: -24px 0 60px rgba(14, 17, 22, 0.16);
+  transform: translateX(102%);
+  transition: transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[dir="rtl"] .tt-panel__surface { transform: translateX(-102%); }
+.tt-panel.is-open .tt-panel__surface { transform: translateX(0); }
+
+.tt-panel__close {
+  /* flex-end follows writing direction, so this lands correctly in RTL */
+  align-self: flex-end;
+  position: sticky;
+  top: 14px;
+  z-index: 2;
+  flex: none;
+  margin: 14px 14px -52px 0;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  background: var(--ivory);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.tt-panel__close:hover { background: rgba(14, 17, 22, 0.05); border-color: var(--line-strong); }
+.tt-panel__close:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+
+.tt-panel__body { padding: 22px 34px 46px; }
+
+.tt-panel__head {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-panel__avatar {
+  position: relative;
+  flex: none;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(150deg, var(--cobalt-deep) 0%, #0a3c86 100%);
+  box-shadow: 0 8px 22px rgba(13, 71, 161, 0.24);
+}
+.tt-panel__avatar[data-accent="copper"] {
+  background: linear-gradient(150deg, #96501f 0%, #6f3a15 100%);
+  box-shadow: 0 8px 22px rgba(150, 80, 31, 0.24);
+}
+.tt-panel__avatar[data-accent="graphite"] {
+  background: linear-gradient(150deg, #4a4c51 0%, #33353a 100%);
+  box-shadow: 0 8px 22px rgba(51, 53, 58, 0.24);
+}
+.tt-panel__avatar[data-accent="cyan"] {
+  background: linear-gradient(150deg, #0091a3 0%, #006573 100%);
+  box-shadow: 0 8px 22px rgba(0, 145, 163, 0.24);
+}
+
+.tt-panel__mono {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--ivory);
+  letter-spacing: 0.5px;
+}
+.tt-panel__photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+.tt-panel__id { min-width: 0; }
+
+.tt-panel__badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 2.4px;
+  color: var(--copper);
+  margin-bottom: 6px;
+}
+
+.tt-panel__name {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.tt-panel__role {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--graphite);
+}
+
+.tt-panel__exp {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+}
+
+.tt-panel__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--graphite);
+}
+.tt-panel__status[data-status="available"] span:first-child { color: #2e7d32; }
+.tt-panel__status[data-status="focused"]   span:first-child { color: var(--cobalt); }
+.tt-panel__status[data-status="review"]    span:first-child { color: var(--copper); }
+.tt-panel__status[data-status="off"]       span:first-child { color: var(--graphite-2); }
+
+.tt-panel__block { padding: 22px 0; border-bottom: 1px solid var(--line); }
+.tt-panel__block:last-child { border-bottom: 0; }
+
+.tt-panel__label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+  margin-bottom: 10px;
+}
+
+.tt-panel__value { font-size: 14.5px; line-height: 1.65; color: var(--ink); }
+.tt-panel__value--mono { font-family: var(--mono); font-size: 11.5px; letter-spacing: 1.2px; }
+
+.tt-panel__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.tt-panel__skills li {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  color: var(--graphite);
+}
+
+.tt-panel__projects li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+.tt-panel__projects li:first-child { border-top: 0; padding-top: 0; }
+.tt-panel__proj-name { font-size: 14px; color: var(--ink); }
+.tt-panel__proj-role {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+}
+
+.tt-panel__empty { font-size: 13px; color: var(--graphite-2); }
+
+/* ---------- legend ------------------------------------------------------ */
+.tt__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.tt__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+}
+
+.tt__legend-line {
+  width: 34px;
+  height: 0;
+  border-top-width: 1.4px;
+  border-top-style: solid;
+  flex: none;
+}
+.tt__legend-line--hierarchy { border-top-color: var(--cobalt); }
+.tt__legend-line--row { border-top-color: var(--graphite-2); opacity: 0.6; }
+.tt__legend-line--cross { border-top-color: var(--copper); border-top-style: dotted; }
+
+.tt__hint {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--graphite-2);
+}
+
+/* A touch device has no hover state, so it is never promised one. The
+   specialty peek it would have seen lives in the tap-through profile. */
+.tt__hint--touch { display: none; }
+@media (hover: none), (pointer: coarse) {
+  .tt__hint--pointer { display: none; }
+  .tt__hint--touch { display: block; }
+}
+
+/* ---------- tablet ------------------------------------------------------ */
+@media (max-width: 1000px) {
+  .tt-board { --tt-band: 168px; height: max(clamp(470px, 58vh, 550px), calc(var(--tt-capacity, 4) * var(--tt-band))); }
+  .tt-node__inner { width: 132px; }
+  .tt-node__avatar { width: 48px; height: 48px; }
+  .tt-node__mono { font-size: 12.5px; }
+  .tt-node__name { font-size: 12.5px; }
+  .tt-node--captain .tt-node__inner { width: 168px; }
+  .tt-node--captain .tt-node__avatar { width: 58px; height: 58px; }
+  .tt-node--captain .tt-node__name { font-size: 15px; }
+}
+
+/* ---------- mobile: vertical tactical flow ------------------------------ */
+@media (max-width: 640px) {
+  .tt { margin-top: 38px; }
+
+  .tt__toolbar { flex-direction: column; gap: 16px; }
+  .tt-formations { width: 100%; grid-template-columns: 1fr 1fr; }
+  .tt-formation { padding: 10px 8px; font-size: 9.5px; letter-spacing: 1.2px; text-align: center; }
+
+  .tt-board { --tt-band: 140px; height: max(clamp(640px, 165vw, 800px), calc(var(--tt-capacity, 5) * var(--tt-band))); }
+
+  .tt-node__inner { width: 116px; gap: 5px; }
+  .tt-node__avatar { width: 42px; height: 42px; }
+  .tt-node__mono { font-size: 11.5px; }
+  .tt-node__name { font-size: 11.5px; }
+  .tt-node__role { font-size: 7.5px; }
+  .tt-node__state-text { display: none; }   /* glyph + aria-label carry status */
+  .tt-node__peek { display: none; }         /* details live in the sheet */
+
+  .tt-node--captain .tt-node__inner { width: 140px; }
+  .tt-node--captain .tt-node__avatar { width: 52px; height: 52px; }
+  .tt-node--captain .tt-node__name { font-size: 14px; }
+
+  /* panel becomes a bottom sheet */
+  .tt-panel__surface {
+    top: auto;
+    inset-inline: 0;
+    inset-inline-end: 0;
+    width: 100%;
+    max-height: 88vh;
+    border-inline-start: 0;
+    border-top: 1px solid var(--line-strong);
+    box-shadow: 0 -18px 50px rgba(14, 17, 22, 0.2);
+    transform: translateY(102%);
+  }
+  [dir="rtl"] .tt-panel__surface { transform: translateY(102%); }
+  .tt-panel.is-open .tt-panel__surface { transform: translateY(0); }
+  .tt-panel__body { padding: 18px 22px 40px; }
+  .tt-panel__name { font-size: 22px; }
+  .tt-panel__close { margin: 12px 12px 0 0; }
+}
+
+@media (max-width: 360px) {
+  .tt-node__role { display: none; }
+}
+
+/* ---------- reduced motion ---------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .tt-board__gridlayer { transition: none; opacity: 1; }
+  .tt-board__halo { transition: none; opacity: 1; }
+  .tt-board.is-entering .tt-node__inner { animation: none; opacity: 1; }
+  .tt-node__inner,
+  .tt-node__avatar,
+  .tt-link,
+  .tt-panel__surface,
+  .tt-panel__scrim { transition-duration: 0.01ms !important; }
+  .tt-link--hierarchy.is-drawn { animation: none; stroke-dasharray: none; }
+  .tt-node.is-focused .tt-node__inner,
+  .tt-node:focus-visible .tt-node__inner { transform: none; }
+}
