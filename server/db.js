@@ -95,6 +95,7 @@ async function initSchema() {
   await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL;`);
   await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'approved';`);
   await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS rejection_reason TEXT;`);
+  await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS link_url TEXT;`);
 
   // Migrate a legacy single-table `admins` schema (from the very first
   // version of this app, SQLite-era) into `users`, if it's still present.
@@ -125,13 +126,41 @@ async function seedAdmin(username, plainPassword) {
 }
 
 async function seedProjectsIfEmpty() {
+  const restRes = await query("SELECT id FROM projects WHERE slug = 'restaurants-mureeh'");
+  if (!restRes.rows[0]) {
+    await query(
+      `INSERT INTO projects (
+        slug, index_no, category, year, title_ar, title_en,
+        problem_ar, problem_en, solution_ar, solution_en,
+        technology_ar, technology_en, result_ar, result_en,
+        result_headline_ar, result_headline_en, image_path, tag_ar, tag_en, link_url, sort_order,
+        approval_status
+      ) VALUES (
+        'restaurants-mureeh', 1, 'SaaS & Menu', '2025',
+        'منصّة مُريح للمطاعم والمنيو الرقمي', 'Mureeh Restaurants & Digital Menu Platform',
+        'تعاني المطاعم والمقاهي من تكاليف تحديث القوائم الورقية والبطء في إدارة الطلبات وتلقي المدفوعات.',
+        'Restaurants faced high reprinting costs and friction in managing daily digital menus and instant customer orders.',
+        'منصة منيو رقمي متكاملة تتيح تصفّح المنيو، الطلب المباشر، وتحديث الأصناف والأسعار لحظياً.',
+        'A comprehensive digital menu & ordering system with real-time category updates and direct customer ordering.',
+        'تطبيق ويب متجاوب، لوحة تحكم سريعة، وإدارة قائمة الطعام بمرونة عالية.',
+        'High-performance responsive web app, instant management dashboard, and menu sync engine.',
+        'توفير تكاليف الطباعة بنسبة 100٪ وتوفير تجربة طلب سلسة وحديثة للزبائن.',
+        '100% savings on paper menu printing with seamless customer ordering.',
+        'النتيجة: تشغيل فعلي مباشر للمنصة عبر الرابط: restaurantsmureeh-2.onrender.com',
+        'Result: Live active system running at restaurantsmureeh-2.onrender.com',
+        'assets/v2/case-restaurants.jpg', 'منيو رقمي / مطاعم', 'Digital Menu / SaaS',
+        'https://restaurantsmureeh-2.onrender.com', 1, 'approved'
+      ) ON CONFLICT (slug) DO NOTHING`
+    );
+  }
+
   const countRes = await query("SELECT COUNT(*)::int AS c FROM projects");
-  if (countRes.rows[0].c > 0) return;
+  if (countRes.rows[0].c > 1) return;
 
   const seed = [
     {
       slug: "mureeh-cloud-platform",
-      index_no: 1,
+      index_no: 2,
       category: "SaaS",
       year: "2025",
       title_ar: "منصّة مُريح للتشغيل السحابي",
@@ -149,11 +178,11 @@ async function seedProjectsIfEmpty() {
       image_path: "assets/v2/case-saas.jpg",
       tag_ar: "SaaS / لوحة تحكم",
       tag_en: "SaaS / Dashboard",
-      sort_order: 1
+      sort_order: 2
     },
     {
       slug: "order-management-app",
-      index_no: 2,
+      index_no: 3,
       category: "Mobile",
       year: "2024",
       title_ar: "تطبيق الجوال لإدارة الطلبات",
@@ -171,11 +200,11 @@ async function seedProjectsIfEmpty() {
       image_path: "assets/v2/case-mobile.jpg",
       tag_ar: "iOS / Android",
       tag_en: "iOS / Android",
-      sort_order: 2
+      sort_order: 3
     },
     {
       slug: "internal-operations-system",
-      index_no: 3,
+      index_no: 4,
       category: "Business System",
       year: "2024",
       title_ar: "نظام إدارة العمليات الداخلية",
@@ -193,7 +222,7 @@ async function seedProjectsIfEmpty() {
       image_path: "assets/v2/case-systems.jpg",
       tag_ar: "نظام داخلي",
       tag_en: "Internal System",
-      sort_order: 3
+      sort_order: 4
     }
   ];
 
@@ -205,7 +234,8 @@ async function seedProjectsIfEmpty() {
         technology_ar, technology_en, result_ar, result_en,
         result_headline_ar, result_headline_en, image_path, tag_ar, tag_en, sort_order,
         approval_status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'approved')`,
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'approved')
+      ON CONFLICT (slug) DO NOTHING`,
       [
         p.slug, p.index_no, p.category, p.year, p.title_ar, p.title_en,
         p.problem_ar, p.problem_en, p.solution_ar, p.solution_en,

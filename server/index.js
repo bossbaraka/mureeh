@@ -285,6 +285,7 @@ async function boot() {
       result_headline_en: b.result_headline_en ?? existing?.result_headline_en ?? "",
       tag_ar: b.tag_ar ?? existing?.tag_ar ?? "",
       tag_en: b.tag_en ?? existing?.tag_en ?? "",
+      link_url: b.link_url ?? existing?.link_url ?? "",
     };
   }
 
@@ -346,15 +347,15 @@ async function boot() {
         problem_ar, problem_en, solution_ar, solution_en,
         technology_ar, technology_en, result_ar, result_en,
         result_headline_ar, result_headline_en, image_path, tag_ar, tag_en,
-        published, sort_order, owner_id, approval_status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+        published, sort_order, owner_id, approval_status, link_url
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING *
     `, [
       slug, maxIndex + 1, fields.category, fields.year, fields.title_ar, fields.title_en,
       fields.problem_ar, fields.problem_en, fields.solution_ar, fields.solution_en,
       fields.technology_ar, fields.technology_en, fields.result_ar, fields.result_en,
       fields.result_headline_ar, fields.result_headline_en, image_path, fields.tag_ar, fields.tag_en,
-      published, maxSort + 1, req.user.id, approval_status
+      published, maxSort + 1, req.user.id, approval_status, fields.link_url
     ]);
 
     res.status(201).json(inserted.rows[0]);
@@ -406,8 +407,8 @@ async function boot() {
         result_headline_ar=$13, result_headline_en=$14,
         image_path=$15, tag_ar=$16, tag_en=$17,
         published=$18, approval_status=$19, rejection_reason=$20,
-        updated_at=NOW()
-      WHERE id=$21
+        link_url=$21, updated_at=NOW()
+      WHERE id=$22
       RETURNING *
     `, [
       fields.category, fields.year, fields.title_ar, fields.title_en,
@@ -415,7 +416,7 @@ async function boot() {
       fields.technology_ar, fields.technology_en, fields.result_ar, fields.result_en,
       fields.result_headline_ar, fields.result_headline_en,
       image_path, fields.tag_ar, fields.tag_en,
-      published, approval_status, rejection_reason,
+      published, approval_status, rejection_reason, fields.link_url,
       req.params.id
     ]);
 
